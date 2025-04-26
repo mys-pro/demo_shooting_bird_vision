@@ -181,8 +181,9 @@ class Game():
         self.ui = UI(self.screen)
         self.background = self.ui.get_background('assets/images/backgrounds', SCREEN_WIDTH, SCREEN_HEIGHT)
 
-        self.volume = 0.02
-        self.ui.play_music(-1, self.volume)
+        self.volume = 1
+        if self.ui.music:
+            self.ui.play_music(-1, self.volume)
 
         self.cap = cv2.VideoCapture(0)
         self.bird_list_folder = ['bird1', 'bird2']
@@ -199,8 +200,12 @@ class Game():
         self.time_start = time.time()
         self.time_cur = time.time()
 
+        self.file_path = 'hight_score.txt'
+        with open(self.file_path, 'r') as file:
+            line = file.readline().strip()
+            self.hight_score = int(line.split(': ')[1])
+
         self.score = 0
-        self.hight_score = 0
         self.game_page = "home"
         self.pause = False
         self.sound_game_over = False
@@ -304,6 +309,8 @@ class Game():
             self.sound_game_over = False
         if self.score > self.hight_score:
             self.hight_score = self.score
+            with open(self.file_path, 'w') as file:
+                file.write(f'hight_score: {self.hight_score}\n')
         self.ui.game_over_display(self.hight_score, self.score)
 
         if self.ui.reset:
@@ -341,7 +348,7 @@ class UI():
         self.sounds["music"] = pygame.mixer.music
         self.sounds["music"].load('assets/music/bgMusic.ogg')
         self.sounds["shoot"] = pygame.mixer.Sound('assets/sound/sniper.ogg')
-        self.sounds["click"] = pygame.mixer.Sound('assets/sound/shooting-sound-fx-159024.mp3')
+        self.sounds["click"] = pygame.mixer.Sound('assets/sound/tap-notification-180637.mp3')
         self.sounds["game_over"] = pygame.mixer.Sound('assets/sound/lose.ogg')
         self.mouse_left_click = False
 
@@ -359,9 +366,18 @@ class UI():
         self.music_button = Button(self.screen, self.music_image, SCREEN_WIDTH - 40, SCREEN_HEIGHT - 40, 0.3)
         self.sound_button = Button(self.screen, self.sound_image, SCREEN_WIDTH - 110, SCREEN_HEIGHT - 40, 0.3)
 
+
         self.reset = False
         self.music = True
         self.sound = True
+        self.file_path = 'setting.txt'
+        self.volume = 1
+        with open(self.file_path, 'r') as file:
+            for line in file:
+                if 'music:' in line:
+                    self.music = line.split(': ')[1].strip().lower() == 'true'
+                elif 'sound:' in line:
+                    self.sound = line.split(': ')[1].strip().lower() == 'true'
         self.repeat = 0
     
     def get_image(self, image, scale):
@@ -421,25 +437,28 @@ class UI():
     
     def get_pause_button(self):
         if self.pause_button.draw():
-            self.click_sound(1)
+            self.click_sound(self.volume)
             return True
         return False
     
     def get_start_button(self):
         if self.start_button.draw():
-            self.click_sound(1)
+            self.click_sound(self.volume)
             return True
         return False
     
     def get_play_button(self):
         if self.play_button.draw():
-            self.click_sound(1)
+            self.click_sound(self.volume)
             return True
         return False
 
     def get_music_button(self):
         if self.music_button.draw():
             self.music = not self.music
+            with open(self.file_path, 'w') as file:
+                file.write(f'music: {"True" if self.music else "False"}\n')
+                file.write(f'sound: {"True" if self.sound else "False"}\n')
         
         if self.music:
             if not self.sounds["music"].get_busy():
@@ -454,6 +473,9 @@ class UI():
     def get_sound_button(self):
         if self.sound_button.draw():
             self.sound = not self.sound
+            with open(self.file_path, 'w') as file:
+                file.write(f'music: {"True" if self.music else "False"}\n')
+                file.write(f'sound: {"True" if self.sound else "False"}\n')
         
         if self.sound:
             self.sound_image = self.get_image(pygame.image.load("assets/images/buttons/sound_on.png").convert_alpha(), 0.3)
@@ -515,7 +537,7 @@ class UI():
         self.screen.blit(hight_score_surface, hight_score_rect)
         self.reset = False
         if self.reset_button.draw():
-            self.click_sound(1)
+            self.click_sound(self.volume)
             self.reset = True
 
 class Button():
